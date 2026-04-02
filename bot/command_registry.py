@@ -1,18 +1,20 @@
+import enum
 import logging
+import configparser
 from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordMessagePayload
+from functools import wraps
 
-_commands: list = {}
+
+_commands: dict = {}
 _fallback: function = lambda: print("Fallback command not implemented!")
 _logger = logging.getLogger(__name__)
-
-def command(name):
-    def wrapper(func):
-        _commands[name] = (func)
-        print(f"Added command: {func.__name__}")
-        return func
-    return wrapper
+_config = configparser.ConfigParser()
+_config.read("config.ini")
+_admin_id = _config["bot"]["admin_id"]
+#print(f"Init command_registry with admin_id {_admin_id}")
 
 def register_command(name, func):
+    print(f"Added command: {func.__name__}")
     _commands[name] = func
 
 def register_fallback(func):
@@ -27,10 +29,14 @@ def parse_command(payload: DiscordGatewayEvent):
     pass
 
 def handle_command(command_string: str, command_args: str | None, payload: DiscordMessagePayload):
+    """
+    returns: CommandResult | None
+    """
     if command_string in _commands:
-        _commands[command_string](CommandData(command_string, command_args, payload, payload.channel_id))
+        return _commands[command_string](CommandData(command_string, command_args, payload, payload.channel_id))
     else:
         _fallback()
+        return None
 
 class CommandData:
 
@@ -44,3 +50,17 @@ class CommandData:
         self.command_args = args
         self.payload = payload
         self.channel = channel or payload.channel_id
+
+class CommandResult:
+    SUCCESS = 0
+    FAIL = 1
+    UNAUTHORIZED = 2
+
+    status: int
+    message: str | None
+    result: any | None
+
+    def __init__(self, status:int = SUCCESS, message: str|None = None, result: any | None = None):
+        self.status = status
+        self.message = message
+        self.result = result
