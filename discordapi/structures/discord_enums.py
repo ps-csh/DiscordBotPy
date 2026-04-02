@@ -43,22 +43,27 @@ class DiscordGatewayIntents(enum.IntFlag):
     AutoModerationConfiguration = 1 << 20,
     AutoModerationExecutions = 1 << 21
 
-# Data structure received during Discord gateway events
-class DiscordGatewayEvent:
-    op: DiscordGatewayOpcode | int #OpCode indicating the type of message
-    d: str | any #Payload, assumes to be a JSON object
-    s: int #Sequence number, only present in OpCode 0
-    t: str  #Event type, only used for OpCode 0
+class DiscordGatewayEventType:
+    MESSAGE_CREATE = "MESSAGE_CREATE"
+    MESSAGE_UPDATE = "MESSAGE_UPDATE"
+    CHANNEL_CREATE = "CHANNEL_CREATE"
+    CHANNEL_UPDATE = "CHANNEL_UPDATE"
+    CHANNEL_DELETE = "CHANNEL_DELETE"
+    THREAD_CREATE = "THREAD_CREATE"
+    THREAD_UPDATE = "THREAD_UPDATE"
+    THREAD_DELETE = "THREAD_DELETE"
+    GUILD_CREATE = "GUILD_CREATE"
+    GUILD_UPDATE = "GUILD_UPDATE"
+    GUILD_DELETE = "GUILD_DELETE"
+    GUILD_EMOJIS_UPDATE = "GUILD_EMOJIS_UPDATE"
+    GUILD_STICKERS_UPDATE = "GUILD_STICKERS_UPDATE"
+    GUILD_MEMBER_ADD = "GUILD_MEMBER_ADD"
+    GUILD_MEMBER_REMOVE = "GUILD_MEMBER_REMOVE"
+    GUILD_MEMBER_UPDATE = "GUILD_MEMBER_UPDATE"
+    MESSAGE_REACTION_ADD = "MESSAGE_REACTION_ADD"
+    MESSAGE_REACTION_REMOVE = "MESSAGE_REACTION_REMOVE"
+    PRESENCE_UPDATE = "PRESENCE_UPDATE"
+    VOICE_STATE_UPDATE = "VOICE_STATE_UPDATE"
+    VOICE_SERVER_UPDATE = "VOICE_SERVER_UPDATE"
 
-    def __init__(self, 
-                 op: DiscordGatewayOpcode|int, 
-                 d: str|any = None, 
-                 s:int = None,
-                 t: str = None):
-        self.op = op
-        self.d = d
-        self.s = s
-        self.t = t
 
-    def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__)

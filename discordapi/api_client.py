@@ -1,28 +1,45 @@
 # Handles interaction with the Discord API, through HTTP requests
 
 import requests
+import logging
 #import config.app_config as app_config
 #from http_request_handler import HTTPRequestHandler
 
 ENDPOINTS = {
     "base": "https://discordapp.com/api/",
-    "channel": "channels/{0}",
-    "message": "channels/{0}/messages",
-    "guild": "guild/{0}",
-    "webhook": "webhook/{0}",
-    "user": "users/{0}"
+    "channel": "https://discordapp.com/api/channels/{0}",
+    "message": "https://discordapp.com/api/channels/{0}/messages",
+    "guild": "https://discordapp.com/api/guild/{0}",
+    "webhook": "https://discordapp.com/api/webhook/{0}",
+    "user": "https://discordapp.com/api/users/{0}"
 }
 
-auth_header = {}
+json_header = {}
+multipart_header = {}
 #http_handler = HTTPRequestHandler()
+_logger = logging.getLogger(__name__)
 
 def init(config):
     print("Init api_client")
     auth_config = config["authentication"]
-    auth_header["Authorization"] = f"{auth_config["type"]} {auth_config["token"]}"
-    auth_header["User-Agent"] = auth_config["useragent"]
-    print(auth_header)
-    send_message(10)
+    #json_header["Authorization"] = f"{auth_config["type"]} {auth_config["token"]}"
+    #json_header["User-Agent"] = auth_config["useragent"]
+    global json_header, multipart_header
+    json_header = {
+        "Authorization": f"{auth_config["type"]} {auth_config["token"]}",
+        "User-Agent": auth_config["useragent"],
+        "Content-Type": 'application/json'
+    }
+    multipart_header = {
+        "Authorization": f"{auth_config["type"]} {auth_config["token"]}",
+        "User-Agent": auth_config["useragent"],
+        "Content-Type": 'multipart/form-data'
+    }
+    print(json_header)
+    #send_message(10)
 
-def send_message(channel):
-    print(ENDPOINTS["base"] + ENDPOINTS["message"].format(channel))
+def send_message(content, channel):
+    global json_header
+    print(ENDPOINTS["message"].format(channel))
+    _logger.debug(f"send_message with headers: {json_header}\ncontent: {content}\nendpoint: {ENDPOINTS["message"].format(channel)}")
+    response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=json_header)
