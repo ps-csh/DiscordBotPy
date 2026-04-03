@@ -43,3 +43,5 @@ def send_message(content, channel):
     print(ENDPOINTS["message"].format(channel))
     _logger.debug(f"send_message with headers: {json_header}\ncontent: {content}\nendpoint: {ENDPOINTS["message"].format(channel)}")
     response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=json_header)
+    if not response.ok:
+        _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")

@@ -47,3 +47,25 @@ def authorize(users: list):
             return None
         return wrapper
     return decorator
+
+def args(count: int):
+    """
+    Specifies the expected amount of arguments for a given command.
+    Splits the string to match the number of arguments.
+    """
+    assert count > 0
+    def decorator(func: function):
+        @wraps(func)    #preserves metadata
+        def wrapper(cmd: CommandData, *args, **kwargs): #args and kwargs ensure this doesn't break if parameters are added later
+            try:
+                command_args = cmd.command_string.split(maxsplit=count)
+                if len(command_args) > count:
+                    cmd.command_args = command_args[1:]
+                    return func(cmd, *args, **kwargs)
+                return CommandResult(status = CommandResult.FAIL, 
+                                    message = f"Incorrect number of arguments. Expected {count}\nargs received: {cmd.command_args}")
+            except BaseException as e:
+                _logger.error(f"Failed to execute admin decorator in {func.__name__}\n{e}")
+            return None
+        return wrapper
+    return decorator

@@ -16,6 +16,7 @@ class Bot:
     _logger: logging.Logger
 
     def __init__(self, config):
+        self._bot_id = config["bot"]["bot_id"]
         self._command_identifiers = config["bot"]["identifiers"]
         self._logger = logging.getLogger(__name__)
 
@@ -25,19 +26,30 @@ class Bot:
             self._logger.debug(f"data: {data.d}")
             if (data.t == DiscordGatewayEventType.MESSAGE_CREATE):
                 payload = DiscordMessagePayload(**data.d)
+                command_string = payload.content.strip()
+                #Ignore messages from self
+                if payload.author["id"] == self._bot_id:
+                    return
                 for id in self._command_identifiers:
-                    if (payload.content.startswith(id)):
-                        message = payload.content.removeprefix(id)
-                        substrings = message.split(maxsplit=1)
-                        self._logger.debug(f"Message: {message}")
-                        self._logger.debug(f"Substring: {substrings}")
-                        result: CommandResult = handle_command(substrings[0], 
-                                       substrings[1] if len(substrings) > 1 else None,
-                                       payload)
-                        if result != None and result.status != CommandResult.SUCCESS:
-                            self._logger.warning(f"Command failed: {payload.content}\Result: {result.message}")
-                        elif result == None:
-                            self._logger.warning(f"Command failed: {payload.content}")
+                    if (command_string.startswith(id)):
+                        cmd = self.split_command(id, command_string)
+                        result: CommandResult = handle_command(cmd.lower(), command_string, payload)
+                        self.handle_result(result, payload)
+                        return
         except BaseException as e:
             self._logger.error(f"Exception while parsing command: {data}\n{e}")
-        pass
+
+    def split_command(self, identifier, command_string: str):
+        message = command_string.removeprefix(identifier)
+        substrings = message.split(maxsplit=1)
+        self._logger.debug(f"Message: {message}")
+        self._logger.debug(f"Substring: {substrings}")
+        return substrings[0]
+    
+    def handle_result(self, result: CommandResult, payload: DiscordMessagePayload):
+        if result == None:
+            self._logger.warning(f"Command failed: {payload.content}")
+        elif result.status != CommandResult.FAIL:
+            self._logger.warning(f"Command failed: {payload.content}\Result: {result.message}")
+        elif result.status == CommandResult.UNAUTHORIZED:
+            discordapi.api_client.send_message()

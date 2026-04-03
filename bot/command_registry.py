@@ -28,12 +28,12 @@ def register_fallback(func):
 def parse_command(payload: DiscordGatewayEvent):
     pass
 
-def handle_command(command_string: str, command_args: str | None, payload: DiscordMessagePayload):
+def handle_command(command_name: str, command_string: str | None, payload: DiscordMessagePayload):
     """
     returns: CommandResult | None
     """
-    if command_string in _commands:
-        return _commands[command_string](CommandData(command_string, command_args, payload, payload.channel_id))
+    if command_name in _commands:
+        return _commands[command_name](CommandData(command_string, payload, channel=payload.channel_id))
     else:
         _fallback()
         return None
@@ -45,9 +45,9 @@ class CommandData:
     payload: DiscordMessagePayload
     channel: str
 
-    def __init__(self, cmd, args, payload, channel = None):
+    def __init__(self, cmd, payload, args = None, channel = None):
         self.command_string = cmd
-        self.command_args = args
+        self.command_args = args,
         self.payload = payload
         self.channel = channel or payload.channel_id
 
