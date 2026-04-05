@@ -55,6 +55,7 @@ class CommandResult:
     SUCCESS = 0
     FAIL = 1
     UNAUTHORIZED = 2
+    ERROR = 3
 
     status: int
     message: str | None

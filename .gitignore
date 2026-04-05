@@ -1,3 +1,5 @@
 config.ini
 notes.txt
 __pycache__/
+*.log
+data/

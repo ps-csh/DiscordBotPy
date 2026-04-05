@@ -14,9 +14,10 @@ ENDPOINTS = {
     "user": "https://discordapp.com/api/users/{0}"
 }
 
-json_header = {}
-multipart_header = {}
+_json_header = {}
+_multipart_header = {}
 #http_handler = HTTPRequestHandler()
+_rate_buckets = {}
 _logger = logging.getLogger(__name__)
 
 def init(config):
@@ -24,24 +25,26 @@ def init(config):
     auth_config = config["authentication"]
     #json_header["Authorization"] = f"{auth_config["type"]} {auth_config["token"]}"
     #json_header["User-Agent"] = auth_config["useragent"]
-    global json_header, multipart_header
-    json_header = {
+    global _json_header, _multipart_header
+    _json_header = {
         "Authorization": f"{auth_config["type"]} {auth_config["token"]}",
         "User-Agent": auth_config["useragent"],
         "Content-Type": 'application/json'
     }
-    multipart_header = {
+    _multipart_header = {
         "Authorization": f"{auth_config["type"]} {auth_config["token"]}",
         "User-Agent": auth_config["useragent"],
         "Content-Type": 'multipart/form-data'
     }
-    print(json_header)
-    #send_message(10)
+    _logger.debug(_json_header)
 
-def send_message(content, channel):
-    global json_header
-    print(ENDPOINTS["message"].format(channel))
-    _logger.debug(f"send_message with headers: {json_header}\ncontent: {content}\nendpoint: {ENDPOINTS["message"].format(channel)}")
-    response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=json_header)
-    if not response.ok:
-        _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")
+#TODO: Move HTTP request to separate module
+def send_message(content: str, channel: str):
+    global _json_header
+
+    if content and not content.isspace():
+        #print(ENDPOINTS["message"].format(channel))
+        _logger.debug(f"send_message with headers: {_json_header}\ncontent: {content}\nendpoint: {ENDPOINTS["message"].format(channel)}")
+        response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=_json_header)
+        if not response.ok:
+            _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")

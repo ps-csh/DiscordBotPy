@@ -139,8 +139,11 @@ class DiscordGatewayClient:
                 self.logger.warning("Missed heartbeat_ack")
                 pass
 
-    def close(self):
-        self.cancel_flag = True
-        self.socket.close(websockets.CloseCode.NORMAL_CLOSURE, reason="Closed by application")
-        self.heartbeat_is_active = False
-        self.heartbeat_timer.cancel()
+    def cleanup(self):
+        try:
+            self.cancel_flag = True
+            self.socket.close(websockets.CloseCode.NORMAL_CLOSURE, reason="Closed by application")
+            self.heartbeat_is_active = False
+            self.heartbeat_timer.cancel()
+        except BaseException as e:
+            print(e)

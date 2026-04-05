@@ -3,11 +3,11 @@ import configparser
 import json
 import logging
 import discordapi.api_client
+import bot.commands.default_commands, bot.commands.db_commands
 from discordapi.gateway_client import DiscordGatewayClient
 from discordapi.structures.discord_enums import DiscordGatewayEventType
 from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordMessagePayload
 from bot.command_registry import CommandData, CommandResult, handle_command
-from bot.commands.default_commands import Test
 
 class Bot:
 
@@ -49,7 +49,11 @@ class Bot:
     def handle_result(self, result: CommandResult, payload: DiscordMessagePayload):
         if result == None:
             self._logger.warning(f"Command failed: {payload.content}")
-        elif result.status != CommandResult.FAIL:
-            self._logger.warning(f"Command failed: {payload.content}\Result: {result.message}")
+        elif result.status == CommandResult.FAIL:
+            self._logger.warning(f"Command failed: {payload.content}\nResult: {result.message}")
+            discordapi.api_client.send_message(result.message, payload.channel_id)
         elif result.status == CommandResult.UNAUTHORIZED:
-            discordapi.api_client.send_message()
+            discordapi.api_client.send_message(result.message, payload.channel_id)
+        elif result.status == CommandResult.ERROR:
+            self._logger.error(f"Received error handling command: {payload.content}\nMessage: {result.message}\nError: {result.result}")
+            discordapi.api_client.send_message(result.message, payload.channel_id)
