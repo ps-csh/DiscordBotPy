@@ -1,4 +1,7 @@
+import asyncio
 import requests
+import logging
+from asyncio import Queue
 from requests_ratelimiter import LimiterSession
 from time import time
 
@@ -6,6 +9,8 @@ RATE_LIMIT_HEADER = "X-RateLimit-Limit"
 RATE_REMAINING_HEADER = "X-RateLimit-Remaining"
 RATE_RESET_HEADER = "X-RateLimit-Reset-After"
 RATE_BUCKET_HEADER = "X-RateLimit-Bucket"
+
+_logger: logging.Logger = logging.getLogger(__name__)
 
 class HTTPRequestHandler:
     #Rate limit should be parsed from response headers
@@ -26,20 +31,24 @@ class HTTPRequestHandler:
     def post_message(self, endpoint, headers, content):
         bucket: RateBucket = self.buckets.get(endpoint)
         if bucket == None:
+            _logger.debug("No bucket yet")
             response = self.session.post(endpoint, headers=headers, data=content)
-            self.handle_response(response)
+            return self.handle_response(response)
         else:
             if bucket.limit_remaining > 0:
                 response = self.session.post(endpoint, headers=headers, data=content)
-                self.handle_response(response)
+                return self.handle_response(response)
             else:
-                bucket.pending_requests = lambda: self.session.post(endpoint, headers=headers, data=content)
+                bucket.enqueue_request(lambda: self.session.post(endpoint, headers=headers, data=content))
+                _logger.debug(f"Request enqueued: {content}")
+        return None
 
 
     def handle_response(self, response: requests.Response):
         if response.ok:
-            bucket = self.buckets.get(response.url)
+            bucket: RateBucket = self.buckets.get(response.url)
             if bucket != None:
+                _logger.debug(f"Updating bucket {bucket.bucket_id}: {response.url}")
                 bucket.update(response.headers)
             else:
                 rate_limit = int(response.headers.get(RATE_LIMIT_HEADER))
@@ -50,6 +59,8 @@ class HTTPRequestHandler:
                                                         limit_remaining,
                                                         reset_after,
                                                         bucket_id)
+                _logger.debug(f"Bucket created: {response.url}")
+        return response
 
 
 class RateBucket:
@@ -58,7 +69,8 @@ class RateBucket:
     reset_after: float
     bucket_id: str
 
-    pending_requests = []
+    pending_requests = Queue()
+    _timer_task = None
 
     def __init__(self, limit, remaining, reset, bucket):
         self.rate_limit = limit
@@ -70,7 +82,27 @@ class RateBucket:
         self.rate_limit = int(headers.get(RATE_LIMIT_HEADER))
         self.limit_remaining = int(headers.get(RATE_REMAINING_HEADER))
         self.reset_after = float(headers.get(RATE_RESET_HEADER))
+        self.start_timer(float(headers.get(RATE_RESET_HEADER)))
 
-    def reset(self):
+    def start_timer(self, duration: float):
+        if (not self._timer_task or self._timer_task.done()):
+            _logger.debug(f"Timer {self.bucket_id} started: {duration} seconds")
+            self._timer_task = asyncio.create_task(asyncio.sleep(duration))
+            self._timer_task.add_done_callback(self.reset)
+
+    def reset(self, *args):
+        _logger.debug(f"Resetting bucket {self.bucket_id}")
+        print(f"Resetting bucket {self.bucket_id}")
         self.limit_remaining = self.rate_limit
-        
+        self.reset_after = -1
+        for i in range(min(self.limit_remaining, self.pending_requests.qsize())):
+            self.do_request()
+
+    def do_request(self):
+        request = self.pending_requests.get()
+        _logger.debug(f"Execute pending request: {request}")
+        request()
+        self.update()
+
+    def enqueue_request(self, request):
+        self.pending_requests.put(request)

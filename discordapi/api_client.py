@@ -2,6 +2,8 @@
 
 import requests
 import logging
+
+from discordapi.http_request_handler import HTTPRequestHandler
 #import config.app_config as app_config
 #from http_request_handler import HTTPRequestHandler
 
@@ -16,7 +18,7 @@ ENDPOINTS = {
 
 _json_header = {}
 _multipart_header = {}
-#http_handler = HTTPRequestHandler()
+_http_handler = HTTPRequestHandler()
 _rate_buckets = {}
 _logger = logging.getLogger(__name__)
 
@@ -45,6 +47,7 @@ def send_message(content: str, channel: str):
     if content and not content.isspace():
         #print(ENDPOINTS["message"].format(channel))
         _logger.debug(f"send_message with headers: {_json_header}\ncontent: {content}\nendpoint: {ENDPOINTS["message"].format(channel)}")
-        response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=_json_header)
-        if not response.ok:
+        #response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=_json_header)
+        response = _http_handler.post_message(ENDPOINTS["message"].format(channel), headers=_json_header, content=content)
+        if response and not response.ok:
             _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")

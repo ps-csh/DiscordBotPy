@@ -27,7 +27,7 @@ def admin(func: function):
                                 message = "This command requires admin privileges")
         except BaseException as e:
             _logger.error(f"Failed to execute admin decorator in {func.__name__}\n{e}")
-        return None
+        return CommandResult(status= CommandResult.ERROR, message="Something went wrong.")
     return wrapper
 
 def authorize(users: list):
