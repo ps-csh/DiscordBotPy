@@ -11,7 +11,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 @command("quote")
-def random_quote(cmd: CommandData):
+async def random_quote(cmd: CommandData):
     try:
         quotes: list = get_table_rows(Quotes)
         if quotes and len(quotes) > 0:
@@ -29,7 +29,7 @@ def random_quote(cmd: CommandData):
 @command("addquote")
 @admin
 @args(1)
-def add_quote(cmd: CommandData):
+async def add_quote(cmd: CommandData):
     try:
         quote: str = cmd.command_args[0]
         if not quote or quote.isspace():

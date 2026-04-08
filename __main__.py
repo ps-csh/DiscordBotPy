@@ -10,6 +10,7 @@ import database.db_connection
 import bot.command_registry
 import bot.bot as Bot
 from discordapi.gateway_client import DiscordGatewayClient
+import bot.commands.default_commands, bot.commands.db_commands, bot.commands.debug_commands
 #from config.app_config import get_config
 
 _gateway_client: DiscordGatewayClient

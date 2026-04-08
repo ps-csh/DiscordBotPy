@@ -1,20 +1,19 @@
 #
+import asyncio
 import configparser
 import json
 import logging
 import discordapi.api_client
-import bot.commands.default_commands, bot.commands.db_commands, bot.commands.debug_commands
 from discordapi.gateway_client import DiscordGatewayClient
 from discordapi.structures.discord_enums import DiscordGatewayEventType
 from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordMessagePayload
-from bot.command_registry import CommandData, CommandResult, handle_command
+from bot.command_registry import CommandData, CommandResult, get_command
+from utility.error_log import add_error
 
-MAX_ERRORS = 10
 
 _logger: logging.Logger = logging.getLogger(__name__)
 _bot_id: int
 _command_identifiers: list
-_errors: list
 
 def init(config):
     global _bot_id, _command_identifiers
@@ -33,9 +32,10 @@ def parse_command(data: DiscordGatewayEvent):
                 return
             for id in _command_identifiers:
                 if (command_string.startswith(id)):
-                    cmd = split_command(id, command_string)
-                    result: CommandResult = handle_command(cmd.lower(), command_string, payload)
-                    handle_result(result, payload)
+                    cmd_name = split_command(id, command_string)
+                    command = get_command(cmd_name.lower())
+                    #Fire and forget command execution
+                    asyncio.create_task(handle_command(command, command_string, payload))
                     return
     except BaseException as e:
         _logger.error(f"Exception while parsing command: {data}\n{e}")
@@ -46,6 +46,10 @@ def split_command(identifier, command_string: str):
     _logger.debug(f"Message: {message}")
     _logger.debug(f"Substring: {substrings}")
     return substrings[0]
+
+async def handle_command(command: function, command_string: str, payload: DiscordMessagePayload):
+    result: CommandResult = await command(CommandData(command_string, payload, channel=payload.channel_id))
+    handle_result(result, payload)
 
 def handle_result(result: CommandResult, payload: DiscordMessagePayload):
     if result == None:
@@ -59,16 +63,3 @@ def handle_result(result: CommandResult, payload: DiscordMessagePayload):
         add_error(result)
         discordapi.api_client.send_message(result.message, payload.channel_id)
 
-def add_error(error_result: CommandResult):
-    if len(_errors) >= MAX_ERRORS:
-        del _errors[0]
-    _errors.append(error_result)
-
-def get_error(index: int):
-    if index >= 0 and index < len(_errors):
-        return _errors[index]
-    return None
-
-def last_error():
-    count = len(_errors)
-    return _errors[count - 1] if count > 0 else None

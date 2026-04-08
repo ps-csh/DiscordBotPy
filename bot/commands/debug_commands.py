@@ -1,6 +1,6 @@
 import logging
 from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordSendMessageStructure
-from bot.bot import get_error, last_error
+from utility.error_log import get_error, last_error
 from bot.command_registry import CommandData, CommandResult
 from bot.command_decorators import args, command, admin
 from discordapi.api_client import send_message, _http_handler
@@ -10,13 +10,13 @@ _logger = logging.getLogger(__name__)
 
 @command("test")
 @admin
-def Test(cmd: CommandData):
+async def Test(cmd: CommandData):
     send_message(DiscordSendMessageStructure("Test").to_json(), cmd.channel)
     return CommandResult()
 
 @command("argstest1")
 @admin
-def Test(cmd: CommandData):
+async def Test(cmd: CommandData):
     send_message(DiscordSendMessageStructure("Test").to_json(), cmd.channel)
     return CommandResult()
 
@@ -24,27 +24,27 @@ def Test(cmd: CommandData):
 @command("argstest1")
 @admin
 @args(1)
-def Test(cmd: CommandData):
+async def ArgsTest(cmd: CommandData):
     send_message(DiscordSendMessageStructure(f"Success: {cmd.command_args[0]}").to_json(), cmd.channel)
     return CommandResult()
 
 @command("argstest2")
 @admin
 @args(2)
-def Test(cmd: CommandData):
+async def ArgsTest2(cmd: CommandData):
     send_message(DiscordSendMessageStructure(f"Success: {cmd.command_args[0]}, {cmd.command_args[1]}").to_json(), cmd.channel)
     return CommandResult()
 
 @command("ratetest")
 @admin
-def RateTest(cmd: CommandData):
+async def RateTest(cmd: CommandData):
     for i in range(15):
         send_message(DiscordSendMessageStructure(f"Rate Test: {i}").to_json(), cmd.channel)
     return CommandResult()
 
 @command("bucketinfo")
 @admin
-def BucketInfo(cmd: CommandData):
+async def BucketInfo(cmd: CommandData):
     output = "Buckets:\n"
     """rate_limit: int
     limit_remaining: int
@@ -58,7 +58,7 @@ def BucketInfo(cmd: CommandData):
 @command("geterror")
 @admin
 @args(1)
-def GetError(cmd: CommandData):
+async def GetError(cmd: CommandData):
     try:
         index = int(args[0])
         error: CommandResult = get_error(index)
@@ -72,7 +72,7 @@ def GetError(cmd: CommandData):
     
 @command("lasterror")
 @admin
-def LastError(cmd: CommandData):
+async def LastError(cmd: CommandData):
     try:
         error: CommandResult = last_error()
         if error:

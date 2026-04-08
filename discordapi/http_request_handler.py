@@ -1,7 +1,8 @@
 import asyncio
 import requests
 import logging
-from asyncio import Queue
+import aiohttp
+from asyncio import Queue, Semaphore
 from requests_ratelimiter import LimiterSession
 from time import time
 
@@ -43,6 +44,16 @@ class HTTPRequestHandler:
                 _logger.debug(f"Request enqueued: {content}")
         return None
 
+    async def post_message_async(self, endpoint, headers, content):
+        bucket: RateBucket = self.buckets.get(endpoint)
+        if bucket == None:
+            _logger.debug(f"No bucket yet for {endpoint}")
+            response = self.session.post(endpoint, headers=headers, data=content)
+            return self.handle_response(response)
+        else:
+            bucket._semaphore.acquire()
+            response = self.session.post(endpoint, headers=headers, data=content)
+            return self.handle_response(response)
 
     def handle_response(self, response: requests.Response):
         if response.ok:
@@ -70,6 +81,7 @@ class RateBucket:
     bucket_id: str
 
     pending_requests = Queue()
+    _semaphore: Semaphore
     _timer_task = None
 
     def __init__(self, limit, remaining, reset, bucket):
@@ -95,8 +107,9 @@ class RateBucket:
         print(f"Resetting bucket {self.bucket_id}")
         self.limit_remaining = self.rate_limit
         self.reset_after = -1
-        for i in range(min(self.limit_remaining, self.pending_requests.qsize())):
-            self.do_request()
+        for i in range(self.rate_limit - self.limit_remaining):
+            self._semaphore.release()
+            #self.do_request()
 
     def do_request(self):
         request = self.pending_requests.get()

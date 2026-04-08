@@ -51,3 +51,14 @@ def send_message(content: str, channel: str):
         response = _http_handler.post_message(ENDPOINTS["message"].format(channel), headers=_json_header, content=content)
         if response and not response.ok:
             _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")
+
+async def send_message_async(content: str, channel: str):
+    global _json_header
+
+    if content and not content.isspace():
+        #print(ENDPOINTS["message"].format(channel))
+        _logger.debug(f"send_message with headers: {_json_header}\ncontent: {content}\nendpoint: {ENDPOINTS["message"].format(channel)}")
+        #response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=_json_header)
+        response = await _http_handler.post_message_async(ENDPOINTS["message"].format(channel), headers=_json_header, content=content)
+        if response and not response.ok:
+            _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")
