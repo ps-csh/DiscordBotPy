@@ -17,7 +17,7 @@ async def random_quote(cmd: CommandData):
         if quotes and len(quotes) > 0:
             index = random.randint(0, len(quotes) - 1)
             _logger.debug(f"Debug quote: {quotes[index].message}")
-            send_message(DiscordSendMessageStructure(quotes[index].message).to_json(), cmd.channel)
+            await send_message(DiscordSendMessageStructure(quotes[index].message).to_json(), cmd.channel)
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, "No quotes found.")
@@ -36,7 +36,7 @@ async def add_quote(cmd: CommandData):
             return CommandResult(CommandResult.FAIL, "No quote string was provided.")
         dbObject = Quotes(message = quote)
         if add_row(dbObject):
-            send_message(DiscordSendMessageStructure("Quote added.").to_json(), cmd.channel)
+            await send_message(DiscordSendMessageStructure("Quote added.").to_json(), cmd.channel)
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, "Failed to add quote")

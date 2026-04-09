@@ -49,17 +49,17 @@ def split_command(identifier, command_string: str):
 
 async def handle_command(command: function, command_string: str, payload: DiscordMessagePayload):
     result: CommandResult = await command(CommandData(command_string, payload, channel=payload.channel_id))
-    handle_result(result, payload)
+    await handle_result(result, payload)
 
-def handle_result(result: CommandResult, payload: DiscordMessagePayload):
+async def handle_result(result: CommandResult, payload: DiscordMessagePayload):
     if result == None:
         _logger.warning(f"Command failed: {payload.content}")
     elif result.status == CommandResult.FAIL:
         _logger.warning(f"Command failed: {payload.content}\nResult: {result.message}")
-        discordapi.api_client.send_message(result.message, payload.channel_id)
+        await discordapi.api_client.send_message(result.message, payload.channel_id)
     elif result.status == CommandResult.UNAUTHORIZED:
-        discordapi.api_client.send_message(result.message, payload.channel_id)
+        await discordapi.api_client.send_message(result.message, payload.channel_id)
     elif result.status == CommandResult.ERROR:
         add_error(result)
-        discordapi.api_client.send_message(result.message, payload.channel_id)
+        await discordapi.api_client.send_message(result.message, payload.channel_id)
 

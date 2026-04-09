@@ -11,13 +11,13 @@ _logger = logging.getLogger(__name__)
 @command("test")
 @admin
 async def Test(cmd: CommandData):
-    send_message(DiscordSendMessageStructure("Test").to_json(), cmd.channel)
+    await send_message(DiscordSendMessageStructure("Test").to_json(), cmd.channel)
     return CommandResult()
 
 @command("argstest1")
 @admin
 async def Test(cmd: CommandData):
-    send_message(DiscordSendMessageStructure("Test").to_json(), cmd.channel)
+    await send_message(DiscordSendMessageStructure("Test").to_json(), cmd.channel)
     return CommandResult()
 
 
@@ -25,22 +25,28 @@ async def Test(cmd: CommandData):
 @admin
 @args(1)
 async def ArgsTest(cmd: CommandData):
-    send_message(DiscordSendMessageStructure(f"Success: {cmd.command_args[0]}").to_json(), cmd.channel)
+    await send_message(DiscordSendMessageStructure(f"Success: {cmd.command_args[0]}").to_json(), cmd.channel)
     return CommandResult()
 
 @command("argstest2")
 @admin
 @args(2)
 async def ArgsTest2(cmd: CommandData):
-    send_message(DiscordSendMessageStructure(f"Success: {cmd.command_args[0]}, {cmd.command_args[1]}").to_json(), cmd.channel)
+    await send_message(DiscordSendMessageStructure(f"Success: {cmd.command_args[0]}, {cmd.command_args[1]}").to_json(), cmd.channel)
     return CommandResult()
 
 @command("ratetest")
 @admin
+@args(1)
 async def RateTest(cmd: CommandData):
-    for i in range(15):
-        send_message(DiscordSendMessageStructure(f"Rate Test: {i}").to_json(), cmd.channel)
-    return CommandResult()
+    try:
+        for i in range(int(cmd.command_args[0])):
+            await send_message(DiscordSendMessageStructure(f"Rate Test: {i}").to_json(), cmd.channel)
+        return CommandResult()
+    except ValueError as e:
+        return CommandResult(CommandResult.ERROR, "Received incorrect argument type.", e)
+    except BaseException as e:
+        return CommandResult(CommandResult.ERROR, "Failed to perform rate test.", e)
 
 @command("bucketinfo")
 @admin
@@ -52,7 +58,7 @@ async def BucketInfo(cmd: CommandData):
     bucket_id: str"""
     for k,v in _http_handler.buckets.items():
         output += f"{k}, Limit: {v.rate_limit}. Remain: {v.limit_remaining}, Reset: {v.reset_after}, ID: {v.bucket_id}, Pending: {v.pending_requests.qsize()}\n"
-    send_message(DiscordSendMessageStructure(f"Rate Test: {output}").to_json(), cmd.channel)
+    await send_message(DiscordSendMessageStructure(f"Rate Test: {output}").to_json(), cmd.channel)
     return CommandResult()
 
 @command("geterror")
@@ -63,7 +69,7 @@ async def GetError(cmd: CommandData):
         index = int(args[0])
         error: CommandResult = get_error(index)
         if error:
-            send_message(f"{error.message}, {error.result}")
+            await send_message(f"{error.message}, {error.result}")
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, f"No error found for index {index}.")
@@ -76,7 +82,7 @@ async def LastError(cmd: CommandData):
     try:
         error: CommandResult = last_error()
         if error:
-            send_message(f"{error.message}, {error.result}")
+            await send_message(f"{error.message}, {error.result}")
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, f"No error found.")

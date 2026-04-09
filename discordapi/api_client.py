@@ -1,5 +1,7 @@
 # Handles interaction with the Discord API, through HTTP requests
 
+import asyncio
+
 import requests
 import logging
 
@@ -18,11 +20,12 @@ ENDPOINTS = {
 
 _json_header = {}
 _multipart_header = {}
-_http_handler = HTTPRequestHandler()
+_http_handler: HTTPRequestHandler = HTTPRequestHandler()
 _rate_buckets = {}
 _logger = logging.getLogger(__name__)
 
 def init(config):
+    global _http_handler
     print("Init api_client")
     auth_config = config["authentication"]
     #json_header["Authorization"] = f"{auth_config["type"]} {auth_config["token"]}"
@@ -41,16 +44,16 @@ def init(config):
     _logger.debug(_json_header)
 
 #TODO: Move HTTP request to separate module
-def send_message(content: str, channel: str):
+async def send_message(content: str, channel: str):
     global _json_header
 
     if content and not content.isspace():
         #print(ENDPOINTS["message"].format(channel))
         _logger.debug(f"send_message with headers: {_json_header}\ncontent: {content}\nendpoint: {ENDPOINTS["message"].format(channel)}")
         #response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=_json_header)
-        response = _http_handler.post_message(ENDPOINTS["message"].format(channel), headers=_json_header, content=content)
+        response = await _http_handler.post_message_async(ENDPOINTS["message"].format(channel), headers=_json_header, content=content)
         if response and not response.ok:
-            _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")
+            _logger.warning(f"send_message POST request failed: {response.status} {response.reason}")
 
 async def send_message_async(content: str, channel: str):
     global _json_header
@@ -61,4 +64,4 @@ async def send_message_async(content: str, channel: str):
         #response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=_json_header)
         response = await _http_handler.post_message_async(ENDPOINTS["message"].format(channel), headers=_json_header, content=content)
         if response and not response.ok:
-            _logger.warning(f"send_message POST request failed: {response.status_code} {response.reason}")
+            _logger.warning(f"send_message POST request failed: {response.status} {response.reason}")
