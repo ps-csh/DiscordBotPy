@@ -1,3 +1,5 @@
+# Handles HTTP Requests, adhering to rate limits
+
 import asyncio
 import requests
 import logging

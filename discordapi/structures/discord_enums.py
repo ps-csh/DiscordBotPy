@@ -66,4 +66,20 @@ class DiscordGatewayEventType:
     VOICE_STATE_UPDATE = "VOICE_STATE_UPDATE"
     VOICE_SERVER_UPDATE = "VOICE_SERVER_UPDATE"
 
-
+class DiscordVoiceGatewayOpcode(enum.IntEnum):
+                                #Event is sent by client or received by client (from API)
+    Identify = 0             #Send
+    SelectProtocol = 1       #Send
+    Ready = 2                #Receive
+    Heartbeat = 3            #Send
+    SessionDescription = 4   #Receive
+    Speaking = 5             #Send, Receive
+    HeartbeatAcknowledge = 6 #Receive
+    Resume = 7               #Send
+    Hello = 8                #Receive
+    Resumed = 9              #Receive
+    #Opcode 10 is not used by voice API
+    ClientsConnect = 11      #Receive
+    #Opcode 12 is not used by voice API
+    ClientsDisconnect = 13   #Receive
+    #Opcodes 21-31 are used for DAVE encoding

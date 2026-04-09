@@ -7,6 +7,7 @@ import discordapi.api_client
 from discordapi.gateway_client import DiscordGatewayClient
 from discordapi.structures.discord_enums import DiscordGatewayEventType
 from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordMessagePayload
+from discordapi.voice_gateway_client import DiscordVoiceGatewayClient
 from bot.command_registry import CommandData, CommandResult, get_command
 from utility.error_log import add_error
 
@@ -14,11 +15,24 @@ from utility.error_log import add_error
 _logger: logging.Logger = logging.getLogger(__name__)
 _bot_id: int
 _command_identifiers: list
+_gateway_client: DiscordGatewayClient
+_voice_client: DiscordVoiceGatewayClient
+_active: bool = True
 
 def init(config):
-    global _bot_id, _command_identifiers
+    global _bot_id, _command_identifiers, _gateway_client
     _bot_id = config["bot"]["bot_id"]
     _command_identifiers = config["bot"]["identifiers"]
+    _gateway_client = DiscordGatewayClient(config)
+    _gateway_client.register_message_callback(parse_command)
+
+def run():
+    asyncio.run(_gateway_client.listen())
+    while (_active):
+        cmd = input("Type q to quit: ")
+        if (cmd == 'q'):
+            _active = False
+    cleanup()
 
 def parse_command(data: DiscordGatewayEvent):
     try:
@@ -63,3 +77,11 @@ async def handle_result(result: CommandResult, payload: DiscordMessagePayload):
         add_error(result)
         await discordapi.api_client.send_message(result.message, payload.channel_id)
 
+def shutdown():
+    global _active
+    _active = False
+
+def cleanup():
+    _gateway_client.cleanup()
+    if _voice_client:
+        _voice_client.cleanup()

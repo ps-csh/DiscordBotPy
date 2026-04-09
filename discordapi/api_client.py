@@ -43,7 +43,7 @@ def init(config):
     }
     _logger.debug(_json_header)
 
-#TODO: Move HTTP request to separate module
+
 async def send_message(content: str, channel: str):
     global _json_header
 

@@ -31,17 +31,12 @@ def main():
                         format='%(asctime)s-[%(name)s][%(levelname)s]: %(message)s',
                         level= logging._nameToLevel[_config["logging"]["level"]])
     discordapi.api_client.init(_config)
-    _gateway_client = DiscordGatewayClient(_config)
+    #_gateway_client = DiscordGatewayClient(_config)
     database.db_connection.init(_config)
     Bot.init(_config)
-    _gateway_client.register_message_callback(Bot.parse_command)
-    asyncio.run(_gateway_client.listen())
-    quit_flag = False
-    while (not quit_flag):
-        cmd = input("Type q to quit: ")
-        if (cmd == 'q'):
-            quit_flag = True
-    _gateway_client.cleanup()
+    #_gateway_client.register_message_callback(Bot.parse_command)
+    asyncio.run(Bot.run())
+    #_gateway_client.cleanup()    
     database.db_connection.cleanup()
 
 async def async_input():
@@ -49,7 +44,7 @@ async def async_input():
     return (await asyncio.to_thread(sys.stdin.readline)).rstrip('\n')
 
 def cleanup():
-    global _gateway_client
+    Bot.cleanup()
     pass
 
 if __name__ == '__main__':
