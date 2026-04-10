@@ -3,7 +3,7 @@ from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordS
 from utility.error_log import get_error, last_error
 from bot.command_registry import CommandData, CommandResult
 from bot.command_decorators import args, command, admin
-from discordapi.api_client import send_message, _http_handler
+from discordapi.api_client import ENDPOINTS, send_message, _http_handler as HTTPHandler
 from discordapi.http_request_handler import HTTPRequestHandler, RateBucket
 
 _logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ async def BucketInfo(cmd: CommandData):
     limit_remaining: int
     reset_after: float
     bucket_id: str"""
-    for k,v in _http_handler.buckets.items():
+    for k,v in HTTPHandler.buckets.items():
         output += f"{k}, Limit: {v.rate_limit}. Remain: {v.limit_remaining}, Reset: {v.reset_after}, ID: {v.bucket_id}, Pending: {v.pending_requests.qsize()}\n"
     await send_message(DiscordSendMessageStructure(f"Rate Test: {output}").to_json(), cmd.channel)
     return CommandResult()
@@ -69,7 +69,7 @@ async def GetError(cmd: CommandData):
         index = int(args[0])
         error: CommandResult = get_error(index)
         if error:
-            await send_message(f"{error.message}, {error.result}")
+            await send_message(f"{error.message}, {error.result}", cmd.channel)
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, f"No error found for index {index}.")
@@ -82,9 +82,22 @@ async def LastError(cmd: CommandData):
     try:
         error: CommandResult = last_error()
         if error:
-            await send_message(f"{error.message}, {error.result}")
+            await send_message(f"{error.message}, {error.result}", cmd.channel)
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, f"No error found.")
     except BaseException as e:
         return CommandResult(CommandResult.ERROR, "Failed to get error.", e)
+    
+@command("bucketreset")
+@admin
+async def ForceResetBucket(cmd: CommandData):
+    try:
+        bucket = HTTPHandler.force_reset_bucket(ENDPOINTS["message"].format(cmd.channel))
+        if bucket:
+            await send_message(f"Bucket reset {bucket.bucket_id}", cmd.channel)
+            return CommandResult()
+        else:
+            return CommandResult(CommandResult.FAIL, f"No bucket found.")
+    except BaseException as e:
+        return CommandResult(CommandResult.ERROR, "Failed to reset bucket.", e)

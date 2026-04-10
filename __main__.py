@@ -33,7 +33,6 @@ async def main():
                         filemode='w',
                         format='%(asctime)s-[%(name)s][%(levelname)s]: %(message)s',
                         level= logging._nameToLevel[_config["logging"]["level"]])
-    discordapi.api_client.init(_config)
     #_gateway_client = DiscordGatewayClient(_config)
     database.db_connection.init(_config)
     Bot.init(_config)

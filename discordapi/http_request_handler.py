@@ -10,7 +10,8 @@ from time import time
 
 RATE_LIMIT_HEADER = "X-RateLimit-Limit"
 RATE_REMAINING_HEADER = "X-RateLimit-Remaining"
-RATE_RESET_HEADER = "X-RateLimit-Reset-After"
+RATE_RESET_HEADER = "X-RateLimit-Reset"
+RATE_RESET_AFTER_HEADER = "X-RateLimit-Reset-After"
 RATE_BUCKET_HEADER = "X-RateLimit-Bucket"
 
 _logger: logging.Logger = logging.getLogger(__name__)
@@ -98,21 +99,22 @@ class HTTPRequestHandler:
             _logger.debug(f"Updating bucket {bucket.bucket_id}: {response.url}\nHeaders: {response.headers}")
             bucket.update(response.headers)
         else:
-            rate_limit = int(response.headers.get(RATE_LIMIT_HEADER))
-            limit_remaining = int(response.headers.get(RATE_REMAINING_HEADER))
-            reset_after = float(response.headers.get(RATE_RESET_HEADER))
-            bucket_id = response.headers.get(RATE_BUCKET_HEADER)
-            self.buckets[str(response.url)] = RateBucket(rate_limit,
-                                                    limit_remaining,
-                                                    reset_after,
-                                                    bucket_id)
+            self.buckets[str(response.url)] = RateBucket(response.headers)
             _logger.debug(f"Bucket created: {response.url}\nHeaders: {response.headers}")
         return bucket
 
+    def force_reset_bucket(self, endpoint):
+        bucket: RateBucket = self.buckets.get(str(endpoint))
+        if bucket:
+            _logger.debug(f"Force reset bucket {bucket.bucket_id}: {endpoint}")
+            bucket.reset()
+            return bucket
+        return None
 
 class RateBucket:
     rate_limit: int
     limit_remaining: int
+    reset_at: int
     reset_after: float
     bucket_id: str
 
@@ -120,18 +122,24 @@ class RateBucket:
     semaphore: Semaphore
     _timer_task = None
 
-    def __init__(self, limit, remaining, reset, bucket):
-        self.rate_limit = limit
-        self.limit_remaining = remaining
-        self.bucket_id = bucket
-        self.reset_after = reset
-        self.semaphore = Semaphore(remaining)
+    def __init__(self, headers: dict):
+        self.rate_limit = int(headers.get(RATE_LIMIT_HEADER))
+        self.limit_remaining = int(headers.get(RATE_REMAINING_HEADER))
+        self.reset_at = int(headers.get(RATE_RESET_HEADER))
+        self.reset_after = float(headers.get(RATE_RESET_AFTER_HEADER))
+        self.bucket_id = headers.get(RATE_BUCKET_HEADER)
+        self.semaphore = Semaphore(self.limit_remaining)
+        self.start_timer(self.reset_after)
 
     def update(self, headers: dict):
         self.rate_limit = int(headers.get(RATE_LIMIT_HEADER))
         self.limit_remaining = int(headers.get(RATE_REMAINING_HEADER))
-        self.reset_after = float(headers.get(RATE_RESET_HEADER))
-        self.start_timer(float(headers.get(RATE_RESET_HEADER)))
+        self.reset_after = float(headers.get(RATE_RESET_AFTER_HEADER))
+        #Only update timer if reset timestamp has passed
+        _logger.debug(f"Reset at: {self.reset_at}, time: {time()}")
+        if self.reset_at < time():
+            self.reset_at = int(headers.get(RATE_RESET_HEADER))
+            self.start_timer(float(headers.get(RATE_RESET_AFTER_HEADER)))
         if self.limit_remaining != self.semaphore._value:
             _logger.warning(f"Desync detected between rate limit headers and semaphore: {self.limit_remaining} (header) vs {self.semaphore._value} (sem)")
 
@@ -145,7 +153,7 @@ class RateBucket:
         _logger.debug(f"Resetting bucket {self.bucket_id}, Remaining: {self.limit_remaining}")
         self.limit_remaining = self.rate_limit
         self.reset_after = 0
-        #TODO: Fix desyncs with sempahore and header when multiple async requests are queued.
+        #TODO: Fix desyncs with semaphore and header when multiple async requests are queued.
         # Semaphore needs to be updated with header values
         print(f"Resetting bucket {self.bucket_id}, Remaining: {self.limit_remaining}")
         for i in range(max(self.rate_limit - self.semaphore._value, 0)):

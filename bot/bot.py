@@ -23,6 +23,7 @@ def init(config):
     global _bot_id, _command_identifiers, _gateway_client, _voice_client
     _bot_id = config["bot"]["bot_id"]
     _command_identifiers = config["bot"]["identifiers"]
+    discordapi.api_client.init(config)
     _gateway_client = DiscordGatewayClient(config)
     _gateway_client.register_message_callback(parse_command)
     _voice_client = DiscordVoiceGatewayClient(config, _gateway_client)
