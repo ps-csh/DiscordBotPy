@@ -1,4 +1,5 @@
 import asyncio
+import aioconsole
 from logging.handlers import RotatingFileHandler
 import sys
 import configparser
@@ -10,7 +11,9 @@ import database.db_connection
 import bot.command_registry
 import bot.bot as Bot
 from discordapi.gateway_client import DiscordGatewayClient
-import bot.commands.default_commands, bot.commands.db_commands, bot.commands.debug_commands
+#TODO: Find where to import commands to avoid circular dependencies
+import bot.commands.default_commands, bot.commands.db_commands
+import bot.commands.debug_commands, bot.commands.voice_commands
 #from config.app_config import get_config
 
 _gateway_client: DiscordGatewayClient
@@ -19,7 +22,7 @@ _bot: Bot = None
 _config: configparser.ConfigParser
 _logger: logging.Logger
 
-def main():
+async def main():
     global _config, _logger
     _config = configparser.ConfigParser()
     _config.read("config.ini")
@@ -35,20 +38,28 @@ def main():
     database.db_connection.init(_config)
     Bot.init(_config)
     #_gateway_client.register_message_callback(Bot.parse_command)
-    asyncio.run(Bot.run())
-    #_gateway_client.cleanup()    
+    await asyncio.gather(Bot.run(), async_input())
     database.db_connection.cleanup()
 
 async def async_input():
-    await asyncio.to_thread(sys.stdout.write, f'Waiting for command: ')
-    return (await asyncio.to_thread(sys.stdin.readline)).rstrip('\n')
+    aioconsole.ainput
+    active = True
+    while (active):
+        cmd = await aioconsole.ainput("Type q to quit: ")
+        if (cmd == 'q'):
+            active = False
+    await cleanup()
 
-def cleanup():
-    Bot.cleanup()
+async def cleanup():
+    await Bot.cleanup()
     pass
+
+#Wrap async function for atexit call
+def exit_handler():
+    asyncio.run(cleanup())
 
 if __name__ == '__main__':
     print("Program start")
-    atexit.register(cleanup)
-    main()
-    #asyncio.run(main())
+    atexit.register(exit_handler)
+    #main()
+    asyncio.run(main())

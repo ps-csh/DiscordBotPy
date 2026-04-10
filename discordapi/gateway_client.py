@@ -146,12 +146,12 @@ class DiscordGatewayClient:
         await self.socket.send(payload.to_json())
         pass
 
-    def cleanup(self):
+    async def cleanup(self):
         try:
             self.cancel_flag = True
             self.heartbeat_is_active = False
             if self.socket and self.socket.state != websockets.State.CLOSED:
-                self.socket.close(websockets.CloseCode.NORMAL_CLOSURE, reason="Closed by application")
+                await self.socket.close(websockets.CloseCode.NORMAL_CLOSURE, reason="Closed by application")
             if self.heartbeat_timer:
                 self.heartbeat_timer.cancel() 
         except BaseException as e:

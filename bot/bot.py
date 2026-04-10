@@ -20,19 +20,17 @@ _voice_client: DiscordVoiceGatewayClient
 _active: bool = True
 
 def init(config):
-    global _bot_id, _command_identifiers, _gateway_client
+    global _bot_id, _command_identifiers, _gateway_client, _voice_client
     _bot_id = config["bot"]["bot_id"]
     _command_identifiers = config["bot"]["identifiers"]
     _gateway_client = DiscordGatewayClient(config)
     _gateway_client.register_message_callback(parse_command)
+    _voice_client = DiscordVoiceGatewayClient(config, _gateway_client)
 
-def run():
-    asyncio.run(_gateway_client.listen())
-    while (_active):
-        cmd = input("Type q to quit: ")
-        if (cmd == 'q'):
-            _active = False
-    cleanup()
+async def run():
+    #NOTE - asyncio.create_task only works in an async event loop
+    await _gateway_client.listen()
+    await cleanup()
 
 def parse_command(data: DiscordGatewayEvent):
     try:
@@ -81,7 +79,7 @@ def shutdown():
     global _active
     _active = False
 
-def cleanup():
-    _gateway_client.cleanup()
+async def cleanup():
+    await _gateway_client.cleanup()
     if _voice_client:
         _voice_client.cleanup()
