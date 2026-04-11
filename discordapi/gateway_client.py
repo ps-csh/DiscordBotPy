@@ -7,7 +7,8 @@ import json
 import logging
 from websockets.asyncio.client import ClientConnection, connect
 from discordapi.structures.discord_enums import DiscordGatewayOpcode, DiscordGatewayIntents
-from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordHelloPayload, DiscordIdentifyPayload, DiscordVoiceUpdatePayload
+from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordHelloPayload, DiscordIdentifyPayload
+from discordapi.structures.discord_voice_payloads import DiscordVoiceUpdatePayload
 from utility.events import Event
 
 class DiscordGatewayClient:
@@ -49,7 +50,7 @@ class DiscordGatewayClient:
                     await self.handle_message(message)
                 except websockets.ConnectionClosedError as e:
                     #print(f"Webocket closed: {e}")
-                    self.logger.warning(f"Webocket closed: {e}")
+                    self.logger.warning(f"Websocket closed: {e}")
                     break
                 finally:
                     #print("Connection closed")
@@ -138,13 +139,30 @@ class DiscordGatewayClient:
                 pass
 
     async def connect_to_voice(self, guild_id:str, channel_id:str):
-        payload = DiscordGatewayEvent(DiscordGatewayOpcode.VoiceStateUpdate,
-                                      d=DiscordVoiceUpdatePayload(guild_id,
-                                                                  channel_id,
-                                                                  False,
-                                                                  False))
-        await self.socket.send(payload.to_json())
-        pass
+        try:
+            payload = DiscordGatewayEvent(DiscordGatewayOpcode.VoiceStateUpdate,
+                                        d=DiscordVoiceUpdatePayload(guild_id,
+                                                                    channel_id,
+                                                                    False,
+                                                                    False))
+            await self.socket.send(payload.to_json())
+            return True
+        except BaseException as e:
+            self.logger.error(f"Failed to connect to voice: {e}")
+        return False
+    
+    async def disconnect_from_voice(self, guild_id:str):
+        try:
+            payload = DiscordGatewayEvent(DiscordGatewayOpcode.VoiceStateUpdate,
+                                        d=DiscordVoiceUpdatePayload(guild_id,
+                                                                    None,
+                                                                    False,
+                                                                    False))
+            await self.socket.send(payload.to_json())
+            return True
+        except BaseException as e:
+            self.logger.error(f"Failed to disconnect from voice: {e}")
+        return False
 
     async def cleanup(self):
         try:

@@ -78,27 +78,6 @@ class DiscordIdentifyPayload:
                 "compress": self.compress, 
                 "intents": self.intents}
 
-class DiscordVoiceUpdatePayload(DiscordStructure):
-    """{
-    "op": 4,
-    "d": {
-        "guild_id": "41771983423143937",
-        "channel_id": "127121515262115840",
-        "self_mute": false,
-        "self_deaf": false
-    }
-    }"""
-    guild_id: int
-    channel_id: str
-    self_mute: bool
-    self_deaf: bool
-
-    def __init__(self, guild_id: str, channel_id: str, self_mute: bool, self_deaf: bool):
-        self.guild_id = guild_id
-        self.channel_id = channel_id
-        self.self_mute = self_mute
-        self.self_deaf = self_deaf
-
 
 #Note - dataclass requires nullable fields to be declared after required fields
 # for __init__ to be generated correctly
