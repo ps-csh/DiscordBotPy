@@ -91,9 +91,12 @@ async def connect_to_voice(guild_id, payload: DiscordMessagePayload, channel_id:
 
 async def disconnect_from_voice(guild_id, payload: DiscordMessagePayload):
     result = await _gateway_client.disconnect_from_voice(guild_id)
-    _voice_client.disconnect()
+    await _voice_client.disconnect()
     if not result:
         await discordapi.api_client.send_message("Failed to disconnect from voice", payload.channel_id)
+
+def voice_client():
+    return _voice_client
 
 def shutdown():
     global _active

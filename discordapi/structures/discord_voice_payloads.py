@@ -99,17 +99,37 @@ class DiscordVoiceReadyPayload(DiscordStructure):
     port: int
     modes: list
 
-    heartbeat_interval: int
+    experiments: any | None
+    streams: any | None
+    heartbeat_interval: int | None = None
     """This is an erroneous field. Heartbeat interval should be parsed from Hello payload instead"""
 
+
+_NONCE_MIN: int = 100000000;
+_NONCE_MAX: int = 1000000000;
 class DiscordVoiceHeartbeatPayload(DiscordStructure):
-    NONCE_MIN: int = 100000000;
-    NONCE_MAX: int = 1000000000;
 
     t: int
-    seq_ack: int
+    seq_ack: int | None
     """seq_ack is the last sequence number received from the gateway, and is required since gateway v8"""
 
     def __init__(self, seq_ack: int, t: int| None = None):
-        self.t = t if t else random.randint(self.NONCE_MIN, self.NONCE_MAX)
+        self.t = t if t else random.randint(_NONCE_MIN, _NONCE_MAX)
         self.seq_ack = seq_ack
+
+class DiscordVoiceSelectProtocolPayload(DiscordStructure):
+    protocol: str
+    data: dict
+
+    def __init__(self, address, port, mode):
+        super().__init__()
+        self.protocol = 'udp'
+        self.data.address = address
+        self.data.port = port
+        self.data.mode = mode
+
+@dataclass
+class DiscordVoiceSessionDescriptionPayload(DiscordStructure):
+    mode: str
+    secret_key: list
+    dave_protocol_version: int

@@ -16,16 +16,19 @@ class DiscordGatewayEvent(DiscordStructure):
     d: str | any #Payload, assumes to be a JSON object
     s: int #Sequence number, only present in OpCode 0
     t: str  #Event type, only used for OpCode 0
+    seq: int #Sequence number may be present since version 8 (only in Voice?)
 
     def __init__(self, 
                  op: DiscordGatewayOpcode|int, 
                  d: str|any = None, 
                  s:int = None,
-                 t: str = None):
+                 t: str = None,
+                 seq: int | None = None):
         self.op = op
         self.d = d
         self.s = s
         self.t = t
+        self.seq = seq
 
     # def to_json(self):
     #     return json.dumps(self, default=lambda o: o.__dict__)
@@ -215,12 +218,12 @@ class DiscordMessagePayload:
 #         pass
 
 
-
+# Nonce values are random numbers, up to 25 characters?
+_NONCE_MIN: int = 100000000;
+_NONCE_MAX: int = 1000000000;
 
 class DiscordSendMessageStructure(DiscordStructure):
-    # Nonce values are random numbers, up to 25 characters?
-    NONCE_MIN: int = 100000000;
-    NONCE_MAX: int = 1000000000;
+
 
     content: str | None
 
@@ -268,6 +271,6 @@ class DiscordSendMessageStructure(DiscordStructure):
 
     def __init__(self, content, tts = False):
         super().__init__()
-        self.nonce = random.randint(self.NONCE_MIN, self.NONCE_MAX)
+        self.nonce = random.randint(_NONCE_MIN, _NONCE_MAX)
         self.content = content
         self.tts = tts
