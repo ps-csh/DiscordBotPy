@@ -23,6 +23,11 @@ class DiscordVoiceStateObject(DiscordStructure):
     guild_id: str | None = None
     member: any | None = None
     self_stream: bool | None = None
+    #Not mentioned in docs
+    discoverable: bool | None = None
+    connected_at: any | None = None
+    preferred_region: any | None = None
+    preferred_regions: any | None = None
 
 class DiscordVoiceUpdatePayload(DiscordStructure):
     """{
@@ -124,12 +129,20 @@ class DiscordVoiceSelectProtocolPayload(DiscordStructure):
     def __init__(self, address, port, mode):
         super().__init__()
         self.protocol = 'udp'
-        self.data.address = address
-        self.data.port = port
-        self.data.mode = mode
+        self.data = {"address": address, "port": port, "mode": mode}
 
+#NOTE - Discord docs contains outdated information
+#See - https://docs.discord.food/topics/voice-connections#session-description-structure
 @dataclass
 class DiscordVoiceSessionDescriptionPayload(DiscordStructure):
-    mode: str
-    secret_key: list
+    audio_codec: str
+    video_codec: str
+    media_session_id: str
     dave_protocol_version: int
+    mode: str | None = None
+    secret_key: list | None = None
+    sdp: str | None = None
+    keyframe_interval: int | None = None
+
+    #Seems to be an int, not mentioned in docs
+    secure_frames_version: int | None = None

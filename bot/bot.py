@@ -4,7 +4,7 @@ import configparser
 import json
 import logging
 import discordapi.api_client
-from discordapi.api_client import send_message
+from discordapi.api_client import send_message, send_message_simple
 from discordapi.gateway_client import DiscordGatewayClient
 from discordapi.structures.discord_enums import DiscordGatewayEventType
 from discordapi.structures.discord_payloads import DiscordGatewayEvent, DiscordMessagePayload
@@ -30,6 +30,7 @@ def init(config):
     _gateway_client = DiscordGatewayClient(config)
     _gateway_client.register_message_callback(parse_command)
     _voice_client = DiscordVoiceGatewayClient(config, _gateway_client)
+    assert _voice_client
 
 async def run():
     #NOTE - asyncio.create_task only works in an async event loop
@@ -54,7 +55,7 @@ def parse_command(data: DiscordGatewayEvent):
                         #Fire and forget command execution
                         asyncio.create_task(handle_command(command, command_string, payload))
                     else:
-                        asyncio.create_task(send_message(f"Command not found: {cmd_name}", payload.channel_id))
+                        asyncio.create_task(send_message_simple(f"Command not found: {cmd_name}", payload.channel_id))
                     return
     except BaseException as e:
         _logger.error(f"Exception while parsing command: {data}\n{e}")
@@ -71,29 +72,31 @@ async def handle_command(command: function, command_string: str, payload: Discor
     await handle_result(result, payload)
 
 async def handle_result(result: CommandResult, payload: DiscordMessagePayload):
+    _logger.debug(f"Handling command result for {payload.content}: {result.status} {result.message}")
     if result == None:
         _logger.warning(f"Command failed: {payload.content}")
     elif result.status == CommandResult.FAIL:
         _logger.warning(f"Command failed: {payload.content}\nResult: {result.message}")
-        await discordapi.api_client.send_message(result.message, payload.channel_id)
+        await discordapi.api_client.send_message_simple(result.message, payload.channel_id)
     elif result.status == CommandResult.UNAUTHORIZED:
-        await discordapi.api_client.send_message(result.message, payload.channel_id)
+        await discordapi.api_client.send_message_simple(result.message, payload.channel_id)
     elif result.status == CommandResult.ERROR:
         add_error(result)
-        await discordapi.api_client.send_message(result.message, payload.channel_id)
+        _logger.error(f"Command returned error: {payload.content}, {result.message}, {result.result}")
+        await discordapi.api_client.send_message_simple(result.message, payload.channel_id)
 
 async def connect_to_voice(guild_id, payload: DiscordMessagePayload, channel_id: str | None = None):
     result = await _gateway_client.connect_to_voice(guild_id, channel_id if channel_id else _default_voice_channel)
     if result:
         _voice_client.wait_for_server_details()
     else:
-        await discordapi.api_client.send_message("Failed to connect to voice channel", payload.channel_id)
+        await discordapi.api_client.send_message_simple("Failed to connect to voice channel", payload.channel_id)
 
 async def disconnect_from_voice(guild_id, payload: DiscordMessagePayload):
     result = await _gateway_client.disconnect_from_voice(guild_id)
     await _voice_client.disconnect()
     if not result:
-        await discordapi.api_client.send_message("Failed to disconnect from voice", payload.channel_id)
+        await discordapi.api_client.send_message_simple("Failed to disconnect from voice", payload.channel_id)
 
 def voice_client():
     return _voice_client
@@ -101,6 +104,7 @@ def voice_client():
 def shutdown():
     global _active
     _active = False
+    cleanup()
 
 async def cleanup():
     await _gateway_client.cleanup()

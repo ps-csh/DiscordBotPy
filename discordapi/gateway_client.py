@@ -57,17 +57,16 @@ class DiscordGatewayClient:
                     pass
 
     async def handle_message(self, message):
-        data = json.loads(message)
         #print(f"JSON parsed: {data}")
-        self.logger.debug(f"JSON parsed: {data}")
         try:
-            self.logger.debug("Handled message")
+            data = json.loads(message)
+            self.logger.debug(f"JSON parsed: {data}")
             event = DiscordGatewayEvent(**data)
-            self.last_sequence = event.s
+            self.last_sequence = event.s if event.s else self.last_sequence
             await self.handle_opcode(event)
         except json.JSONDecodeError as e:
             #print(f"Error parsing gateway event:\n{e}")
-            self.logger.warning(f"Error parsing gateway event:\n{e}")
+            self.logger.warning(f"Error JSON Decoding gateway event:\n{e}")
         except Exception as e:
             #print(f"Caught exception in handle_message:{e}")
             self.logger.warning(f"Caught exception in handle_message:{e}")

@@ -6,6 +6,7 @@ import requests
 import logging
 
 from discordapi.http_request_handler import HTTPRequestHandler
+from discordapi.structures.discord_payloads import DiscordSendMessageStructure
 #import config.app_config as app_config
 #from http_request_handler import HTTPRequestHandler
 
@@ -53,7 +54,12 @@ async def send_message(content: str, channel: str):
         #response = requests.post(ENDPOINTS["message"].format(channel), data=content, headers=_json_header)
         response = await _http_handler.post_message_async(ENDPOINTS["message"].format(channel), headers=_json_header, content=content)
         if response and not response.ok:
-            _logger.warning(f"send_message POST request failed: {response.status} {response.reason}")
+            _logger.warning(f"send_message POST request failed: {response.status} {response.reason}, Channel {channel}, Content: {content}")
+
+async def send_message_simple(content: str, channel: str):
+    """Sends plain text to the Discord API. Converts to DiscordSendMessageStructure and to JSON."""
+    payload = DiscordSendMessageStructure(content)
+    await send_message(payload.to_json(), channel)
 
 async def send_message_async(content: str, channel: str):
     global _json_header

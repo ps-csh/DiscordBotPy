@@ -1,18 +1,24 @@
 
+import logging
+
 import opuslib_next
 import numpy
 import miniaudio
 
+_logger: logging.Logger = logging.getLogger(__name__)
 
 async def opus_encode_audio(filename, sample_rate, channels, frame_size):
     # application types include 'voip', 'audio' and 'restricted_lowdelay'
-    async with opuslib_next.Encoder(sample_rate, channels, 'audio') as encoder:
-
+    #Encoder does not support 'async with'
+    #with opuslib_next.Encoder(sample_rate, channels, 'audio') as encoder:
+    try:
+        encoder = opuslib_next.Encoder(sample_rate, channels, 'audio')
         stream = miniaudio.stream_file(filename,
                                         sample_rate=sample_rate,
                                         nchannels=channels,
                                         output_format=miniaudio.SampleFormat.SIGNED16)
-        sequence, timestamp = 0
+        sequence = 0
+        timestamp = 0
         
         # Miniaudio yields 'array.array' objects of PCM data
         for pcm_chunk in stream:
@@ -35,4 +41,5 @@ async def opus_encode_audio(filename, sample_rate, channels, frame_size):
                 yield opus_packet, sequence, timestamp
                 sequence += sequence
                 timestamp += frame_size
-    pass
+    except BaseException as e:
+        _logger.error(f"Error encoding opus data: {e}")

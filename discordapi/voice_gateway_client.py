@@ -24,17 +24,17 @@ class DiscordVoiceGatewayClient:
     """aead_xchacha20_poly1305_rtpsize is guaranteed to be available"""
 
     #Partial gateway needs to be formatted with the url received from the server update
-    _partial_gateway: str
-    _gateway_url: str
-    _session_id: str
-    _guild_id: str
-    _channel_id: str
-    _token: str
-    _bot_id: str
-    _socket: ClientConnection
+    _partial_gateway: str = None
+    _gateway_url: str = None
+    _session_id: str = None
+    _guild_id: str = None
+    _channel_id: str = None
+    _token: str = None
+    _bot_id: str = None
+    _socket: ClientConnection = None
     _last_sequence:int = -1
     _last_hearbeat_nonce = -1
-    _heartbeat_timer: asyncio.Task
+    _heartbeat_timer: asyncio.Task = None
     _heartbeat_interval = -1
     _heartbeat_ack: bool = True
     _heartbeat_is_active = False
@@ -48,25 +48,25 @@ class DiscordVoiceGatewayClient:
     _voice_task: asyncio.Task[None] = None
     _ip_discovery_task: asyncio.Task[None] = None
 
-    _udp_protocol: DiscordVoiceDatagramProtocol
-    _udp_address: str
-    _udp_port: int
-    _ssrc: int
-    _modes: list
-    _secret: list
+    _udp_protocol: DiscordVoiceDatagramProtocol = None
+    _udp_address: str = None
+    _udp_port: int = -1
+    _ssrc: int = -1
+    _modes: list = None
+    _secret: list = None
 
-    _audio_sample_rate: int
-    _audio_channels: int
-    _audio_frame_duration: int
+    _audio_sample_rate: int = -1
+    _audio_channels: int = -1
+    _audio_frame_duration: int = -1
 
     def __init__(self, config, gateway_client: DiscordGatewayClient):
         self._config = config
         self._partial_gateway = config["api"]["voice_gateway"]
         self._token = config['authentication']['token']
         self._bot_id = config['bot']['bot_id']
-        self._audio_sample_rate = config['voip']['sample_rate']
-        self._audio_channels = config['voip']['channels']
-        self._audio_frame_duration = config['voip']['frame_duration']
+        self._audio_sample_rate = int(config['voip']['sample_rate'])
+        self._audio_channels = int(config['voip']['channels'])
+        self._audio_frame_duration = int(config['voip']['frame_duration'])
         #self.socket = connect(GATEWAY_URL)
         self.message_callback = Event()
         #VoiceGateway relies on receiving events from regular Gateway for initialization
@@ -111,33 +111,39 @@ class DiscordVoiceGatewayClient:
             await self.send_identify_payload()
             async for message in websocket:
                 try:
+                    if isinstance(message, str):
                     #message = self.socket.recv()
                     #print(f"Received: {message}")
-                    _logger.debug(f"Received: {message}")
-                    await self.handle_message(message)
+                        _logger.debug(f"Received: {message}")
+                        await self.handle_message(message)
+                    elif isinstance(message, bytes):
+                        _logger.debug(f"Received binary data: {message}")
+                        #TODO: Handle binary data from Discord DAVE protocols
+                    else:
+                        _logger.warning("Received data of unknown type")
                 except websockets.ConnectionClosedError as e:
                     #print(f"Webocket closed: {e}")
-                    _logger.warning(f"Websocket closed: {e}")
+                    _logger.error(f"Websocket closed: {e}")
                     break
                 finally:
                     #print("Connection closed")
                     pass
 
     async def handle_message(self, message):
-        data = json.loads(message)
         #print(f"JSON parsed: {data}")
-        _logger.debug(f"JSON parsed: {data}")
         try:
+            data = json.loads(message)
+            _logger.debug(f"JSON parsed: {data}")
             _logger.debug("Handled message")
             event = DiscordGatewayEvent(**data)
-            self._last_sequence = event.s
+            self._last_sequence = event.seq if event.seq else self._last_sequence
             await self.handle_opcode(event)
         except json.JSONDecodeError as e:
             #print(f"Error parsing gateway event:\n{e}")
-            _logger.warning(f"Error parsing gateway event:\n{e}")
+            _logger.warning(f"Error JSON Decoding voice gateway event: {message}\n{e}")
         except Exception as e:
             #print(f"Caught exception in handle_message:{e}")
-            _logger.warning(f"Caught exception in handle_message:{e}")
+            _logger.warning(f"Caught exception in handle_message: {message}\n{e}")
 
     async def handle_opcode(self, event: DiscordGatewayEvent):
         _logger.debug(f"Handling opcode:{event.op}")
@@ -225,6 +231,7 @@ class DiscordVoiceGatewayClient:
 
             self._udp_protocol._srrc = self._ssrc
             self._udp_protocol._secret = self._secret
+            _logger.debug(f"Received Session Description: {payload.to_json()}")
         except BaseException as e:
             _logger.error(f"Failed to parse session description payload: {e}")
 
@@ -265,6 +272,10 @@ class DiscordVoiceGatewayClient:
 
     async def send_audio(self, filename, cancel = False):
         if self._ip_discovery_task and not self._ip_discovery_task.done:
+            _logger.warning("Attempt to send audio before IP Discovery completed")
+            return
+        if not self._udp_protocol:
+            _logger.warning("UDP Protocol has not been created")
             return
         if not self._voice_task or self._voice_task.done:
             self._voice_task = asyncio.create_task(self._udp_protocol.send_audio_file(filename,
@@ -300,3 +311,17 @@ class DiscordVoiceGatewayClient:
             
         except BaseException as e:
             print(e)
+
+    def debug_info(self):
+        return f"""Gateway: {self._gateway_url if self._gateway_url else "null"}
+            Session ID: {self._session_id if self._session_id else "null"}
+            Channel ID: {self._channel_id}
+            Last Sequence: {self._last_sequence}
+            Heartbeat Active: {self._heartbeat_is_active}
+            Waiting for Server Details: {self._waiting_for_server_details}
+            UDP Protocol: {self._udp_protocol if self._udp_protocol else "null"}
+            UDP Address: {self._udp_address if self._udp_protocol else "null"}
+            UDP Port: {self._udp_port if self._udp_protocol else "null"}
+            Modes: {self._modes}
+            Audio Rate: {self._audio_sample_rate}, Channels: {self._audio_channels}, Frame: {self._audio_frame_duration}ms
+            """
