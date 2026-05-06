@@ -45,7 +45,7 @@ async def debug_rate_test(cmd: CommandData):
         return CommandResult()
     except ValueError as e:
         return CommandResult(CommandResult.ERROR, "Received incorrect argument type.", e)
-    except BaseException as e:
+    except Exception as e:
         return CommandResult(CommandResult.ERROR, "Failed to perform rate test.", e)
 
 @command("bucketinfo")
@@ -73,20 +73,20 @@ async def debug_get_error_log(cmd: CommandData):
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, f"No error found for index {index}.")
-    except BaseException as e:
+    except Exception as e:
         return CommandResult(CommandResult.ERROR, "Failed to get error.", e)
     
 @command("lasterror")
 @admin
 async def debug_last_error_log(cmd: CommandData):
     try:
-        error: CommandResult = last_error()
+        error: CommandResult | None = last_error()
         if error:
             await send_message_simple(f"{error.message}, {error.result}", cmd.channel)
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, f"No error found.")
-    except BaseException as e:
+    except Exception as e:
         return CommandResult(CommandResult.ERROR, "Failed to get error.", e)
     
 @command("bucketreset")
@@ -99,7 +99,7 @@ async def debug_force_reset_bucket(cmd: CommandData):
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, f"No bucket found.")
-    except BaseException as e:
+    except Exception as e:
         return CommandResult(CommandResult.ERROR, "Failed to reset bucket.", e)
     
 @command("voicestate")
@@ -112,5 +112,5 @@ async def debug_get_voice_state(cmd: CommandData):
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, "Voice Client has not been created yet.")
-    except BaseException as e:
+    except Exception as e:
         return CommandResult(CommandResult.ERROR, "Failed to get voice state.", e)

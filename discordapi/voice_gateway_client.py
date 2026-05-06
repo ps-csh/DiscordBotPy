@@ -95,7 +95,7 @@ class DiscordVoiceGatewayClient:
                     self._gateway_url = self._partial_gateway.format(voice_server_update.endpoint)
                     self._voiceServerUpdateReceived = True
                 self.connect()
-            except BaseException as e:
+            except Exception as e:
                 _logger.error(f"Failed to parse voice update data: {e}")
         pass
 
@@ -190,7 +190,7 @@ class DiscordVoiceGatewayClient:
         try:
             _logger.debug(f"Handling hello payload:{heartbeat_interval}")
             self._heartbeat_timer = asyncio.create_task(self.do_heartbeat(heartbeat_interval/1000))
-        except BaseException as e:
+        except Exception as e:
             _logger.error(f"Caught exception in handle_hello_payload: {e}")
             print(f"Caught exception in handle_hello_payload: {e}")
 
@@ -203,7 +203,7 @@ class DiscordVoiceGatewayClient:
                                                 self._session_id,
                                                 self._token))
             await self._socket.send(payload.to_json())
-        except BaseException as e:
+        except Exception as e:
             _logger.error(f"Failed to send identify payload: {e}")
 
     async def handle_ready_payload(self, event: DiscordGatewayEvent):
@@ -219,7 +219,7 @@ class DiscordVoiceGatewayClient:
                 self._ip_discovery_task.cancel()
                 _logger.debug("Cancelling IP Discovery task")
             self._ip_discovery_task = asyncio.create_task(self.open_udp_socket())
-        except BaseException as e:
+        except Exception as e:
             _logger.error(f"Failed to parse ready payload: {e}")
 
     async def handle_session_description_payload(self, event: DiscordGatewayEvent):
@@ -232,7 +232,7 @@ class DiscordVoiceGatewayClient:
             self._udp_protocol._srrc = self._ssrc
             self._udp_protocol._secret = self._secret
             _logger.debug(f"Received Session Description: {payload.to_json()}")
-        except BaseException as e:
+        except Exception as e:
             _logger.error(f"Failed to parse session description payload: {e}")
 
     async def open_udp_socket(self):
@@ -267,7 +267,7 @@ class DiscordVoiceGatewayClient:
                     self._heartbeat_is_active = False
                     _logger.warning("Missed heartbeat_ack")
                     pass
-        except BaseException as e:
+        except Exception as e:
             _logger.error(f"Caught exception in do_heartbeat: {e}")
 
     async def send_audio(self, filename, cancel = False):
@@ -309,7 +309,7 @@ class DiscordVoiceGatewayClient:
             if self._ip_discovery_task:
                 self._ip_discovery_task.cancel()
             
-        except BaseException as e:
+        except Exception as e:
             print(e)
 
     def debug_info(self):

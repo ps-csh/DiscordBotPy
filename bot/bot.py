@@ -57,7 +57,7 @@ def parse_command(data: DiscordGatewayEvent):
                     else:
                         asyncio.create_task(send_message_simple(f"Command not found: {cmd_name}", payload.channel_id))
                     return
-    except BaseException as e:
+    except Exception as e:
         _logger.error(f"Exception while parsing command: {data}\n{e}")
 
 def split_command(identifier, command_string: str):

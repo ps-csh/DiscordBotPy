@@ -29,14 +29,14 @@ def init(config):
         print("DbTest")
         result = _session.execute(text("SELECT * FROM 'quotes';"))
         print(result.all())
-    except BaseException as e:
+    except Exception as e:
         _logger.error(f"Could not initialize DbConnection: {e}")
 
 def get_table_rows(table):
     try:
         rows = _session.query(table).all()
         return rows
-    except BaseException as e:
+    except Exception as e:
         _logger.error(f"Failed to get items from database table {table}: {e}")
     return None
 
@@ -45,7 +45,7 @@ def add_row(obj: any):
         _session.add(obj)
         _session.commit()
         return True
-    except BaseException as e:
+    except Exception as e:
         _logger.error(f"Failed to add item {obj} to database: {e}")
     return False
     
@@ -54,5 +54,5 @@ def cleanup():
     try:
         _session.close()
         _engine.dispose()
-    except BaseException as e:
+    except Exception as e:
         print(e)

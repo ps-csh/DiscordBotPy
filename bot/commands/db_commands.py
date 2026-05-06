@@ -21,7 +21,7 @@ async def random_quote(cmd: CommandData):
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, "No quotes found.")
-    except BaseException as e:
+    except Exception as e:
         #TODO: See if logging can be moved to this file
         _logger.error(f"Command failed: quote, Reason: {e}")
         return CommandResult(CommandResult.ERROR, "Failed to get quote.", e)
@@ -40,6 +40,6 @@ async def add_quote(cmd: CommandData):
             return CommandResult()
         else:
             return CommandResult(CommandResult.FAIL, "Failed to add quote")
-    except BaseException as e:
+    except Exception as e:
         _logger.error(f"Command failed: addquote, Reason: {e}")
         return CommandResult(CommandResult.ERROR, "Failed to add quote", e)

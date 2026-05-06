@@ -117,7 +117,7 @@ class DiscordGatewayClient:
             data = gateway_event.to_json()
             self.logger.debug(f"Sending identify data: {data}")
             await self.socket.send(data)
-        except BaseException as e:
+        except Exception as e:
             self.logger.error(f"Caught exception in handle_hello_payload: {e}")
             print(f"Caught exception in handle_hello_payload: {e}")
 
@@ -146,7 +146,7 @@ class DiscordGatewayClient:
                                                                     False))
             await self.socket.send(payload.to_json())
             return True
-        except BaseException as e:
+        except Exception as e:
             self.logger.error(f"Failed to connect to voice: {e}")
         return False
     
@@ -159,7 +159,7 @@ class DiscordGatewayClient:
                                                                     False))
             await self.socket.send(payload.to_json())
             return True
-        except BaseException as e:
+        except Exception as e:
             self.logger.error(f"Failed to disconnect from voice: {e}")
         return False
 
@@ -171,5 +171,5 @@ class DiscordGatewayClient:
                 await self.socket.close(websockets.CloseCode.NORMAL_CLOSURE, reason="Closed by application")
             if self.heartbeat_timer:
                 self.heartbeat_timer.cancel() 
-        except BaseException as e:
+        except Exception as e:
             print(e)

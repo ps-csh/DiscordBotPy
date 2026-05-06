@@ -22,7 +22,7 @@ async def run_udp_discovery(server_ip, server_port, ssrc):
         # Wait for the protocol to receive the response
         external_ip, external_port = await protocol.discovery_future
         return external_ip, external_port, protocol
-    except BaseException as e:
+    except Exception as e:
         _logger.error(f"Failed to get external IP in UDP dicovery: {e}")
     finally:
         #NOTE - we don't want the transport to be closed yet, so we can reuse it for sending data
@@ -91,7 +91,7 @@ class DiscordVoiceDatagramProtocol(asyncio.DatagramProtocol):
                     # 4. "Busy-wait" for the final sub-millisecond precision
                     while time.perf_counter() < next_time:
                         pass
-        except BaseException as e:
+        except Exception as e:
             _logger.error(f"Received error sending audio file: {e}")
 
     async def encode_audio_packet(self, opus_packet, sequence, timestamp):

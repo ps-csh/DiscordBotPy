@@ -39,7 +39,7 @@ class DiscordVoiceUpdatePayload(DiscordStructure):
         "self_deaf": false
     }
     }"""
-    guild_id: int
+    guild_id: str
     channel_id: str
     self_mute: bool
     self_deaf: bool

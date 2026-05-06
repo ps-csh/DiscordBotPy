@@ -8,38 +8,38 @@ import miniaudio
 _logger: logging.Logger = logging.getLogger(__name__)
 
 async def opus_encode_audio(filename, sample_rate, channels, frame_size):
-    # application types include 'voip', 'audio' and 'restricted_lowdelay'
-    #Encoder does not support 'async with'
-    #with opuslib_next.Encoder(sample_rate, channels, 'audio') as encoder:
     try:
+        # Persistent state for the stream
         encoder = opuslib_next.Encoder(sample_rate, channels, 'audio')
-        stream = miniaudio.stream_file(filename,
-                                        sample_rate=sample_rate,
-                                        nchannels=channels,
+        stream = miniaudio.stream_file(filename, sample_rate=sample_rate, 
+                                        nchannels=channels, 
                                         output_format=miniaudio.SampleFormat.SIGNED16)
+        
         sequence = 0
         timestamp = 0
-        
-        # Miniaudio yields 'array.array' objects of PCM data
+        bytes_per_frame = frame_size * channels * 2
+        residual = b"" # Buffer for leftover data between chunks
+
         for pcm_chunk in stream:
-            # pcm_chunk might contain multiple frames. We need to slice it 
-            # into exactly FRAME_SIZE (960) chunks for the encoder.
-            pcm_bytes = pcm_chunk.tobytes()
+            # Combine residual data with the new chunk
+            pcm_bytes = residual + pcm_chunk.tobytes()
             
-            # 960 samples * 2 channels * 2 bytes per sample = 3840 bytes per 20ms
-            bytes_per_frame = frame_size * channels * 2
-            
-            for i in range(0, len(pcm_bytes), bytes_per_frame):
+            # Process full frames
+            for i in range(0, (len(pcm_bytes) // bytes_per_frame) * bytes_per_frame, bytes_per_frame):
                 frame = pcm_bytes[i:i + bytes_per_frame]
-                
-                # Pad the final frame with silence if it's too short
-                if len(frame) < bytes_per_frame:
-                    frame = frame.ljust(bytes_per_frame, b'\0')
-                
-                # Encode to Opus
                 opus_packet = encoder.encode(frame, frame_size)
                 yield opus_packet, sequence, timestamp
-                sequence += sequence
+                
+                sequence += 1  # Corrected increment
                 timestamp += frame_size
-    except BaseException as e:
+
+            # Save the remainder for the next loop iteration
+            residual = pcm_bytes[(len(pcm_bytes) // bytes_per_frame) * bytes_per_frame:]
+
+        # Optional: Pad and send the final residual if audio ends
+        if residual:
+            final_frame = residual.ljust(bytes_per_frame, b'\0')
+            yield encoder.encode(final_frame, frame_size), sequence, timestamp
+
+    except Exception as e:
         _logger.error(f"Error encoding opus data: {e}")

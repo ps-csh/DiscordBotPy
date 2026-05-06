@@ -3,3 +3,5 @@ notes.txt
 __pycache__/
 *.log
 data/
+*.dll
+*.code-workspace

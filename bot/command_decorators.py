@@ -25,7 +25,7 @@ def admin(func: function):
                 return func(cmd, *args, **kwargs)
             return CommandResult(status = CommandResult.UNAUTHORIZED, 
                                 message = "This command requires admin privileges")
-        except BaseException as e:
+        except Exception as e:
             _logger.error(f"Failed to execute admin decorator in {func.__name__}\n{e}")
         return CommandResult(status= CommandResult.ERROR, message="Something went wrong.")
     return wrapper
@@ -42,7 +42,7 @@ def authorize(users: list):
                     return func(cmd, *args, **kwargs)
                 return CommandResult(status = CommandResult.UNAUTHORIZED, 
                                     message = "This command requires admin privileges")
-            except BaseException as e:
+            except Exception as e:
                 _logger.error(f"Failed to execute admin decorator in {func.__name__}\n{e}")
             return None
         return wrapper
@@ -64,7 +64,7 @@ def args(count: int):
                     return func(cmd, *args, **kwargs)
                 return CommandResult(status = CommandResult.FAIL, 
                                     message = f"Incorrect number of arguments. Expected {count}\nargs received: {cmd.command_args}")
-            except BaseException as e:
+            except Exception as e:
                 _logger.error(f"Failed to execute admin decorator in {func.__name__}\n{e}")
             return None
         return wrapper
